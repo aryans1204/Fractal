@@ -5,3 +5,5 @@ Some example pics:
 
 ![Mandelbrot Set](retro.png)
 
+![Spiral Image](out.png)
+
