@@ -3,5 +3,5 @@ Go based Fractal Art Generator using Mandelbrot Sets
 
 Some example pics:
 
-[Mandelbrot Set](retro.png)
+![Mandelbrot Set](retro.png)
 
