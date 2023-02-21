@@ -15,22 +15,22 @@ import (
 	"github.com/nfnt/resize"
 )
 
-var IT, xres, yres, aa int
-var xpos, ypos, radius float64
-var out_filename, palette_string string
+var iterations, x_res, y_res, aa int
+var x_pos, y_pos, rad float64
+var out_filename, palette_str string
 var invert bool
 var focusstring string
 
 func init() {
-	flag.IntVar(&IT, "IT", 512, "maximum number of iterations")
-	flag.IntVar(&xres, "xres", 500, "x resolution")
-	flag.IntVar(&yres, "yres", 500, "y resolution")
+	flag.IntVar(&iterations, "IT", 512, "maximum number of iterations")
+	flag.IntVar(&x_res, "xres", 500, "x resolution")
+	flag.IntVar(&y_res, "yres", 500, "y resolution")
 	flag.IntVar(&aa, "aa", 1, "anti alias, e.g. set aa=4 for 4xAA")
-	flag.Float64Var(&xpos, "x", -.75, "real coordinate")
-	flag.Float64Var(&ypos, "y", 0.0, "imaginary coordinate")
-	flag.Float64Var(&radius, "r", 3.0, "radius")
+	flag.Float64Var(&x_pos, "x", -.75, "real coordinate")
+	flag.Float64Var(&y_pos, "y", 0.0, "imaginary coordinate")
+	flag.Float64Var(&rad, "r", 3.0, "radius")
 	flag.StringVar(&out_filename, "out", "out.png", "output file")
-	flag.StringVar(&palette_string, "palette", "plan9", "One of: plan9|websafe|gameboy|retro|alternate")
+	flag.StringVar(&palette_str, "palette", "plan9", "One of: plan9|websafe|gameboy|retro|alternate")
 	flag.StringVar(&focusstring, "focus", "", "sequence of focus command. Select quadrant (numbered 1-4). e.g.: 1423. Read code to understand")
 	flag.BoolVar(&invert, "invert", false, "Inverts colouring")
 	flag.Parse()
@@ -70,7 +70,7 @@ func init() {
 
 func it(ca, cb float64) (int, float64) {
 	var a, b float64 = 0, 0
-	for i := 0; i < IT; i++ {
+	for i := 0; i < iterations; i++ {
 		as, bs := a*a, b*b
 		if as+bs > 4 {
 			return i, as + bs
@@ -80,7 +80,7 @@ func it(ca, cb float64) (int, float64) {
 		//}
 		a, b = as-bs+ca, 2*a*b+cb
 	}
-	return IT, a*a + b*b
+	return iterations, a*a + b*b
 }
 
 var Gameboy = []color.Color{
@@ -112,44 +112,39 @@ var Retro = []color.Color{
 var Gray, Alternate, BlackWhite []color.Color
 
 func main() {
-	width, height := xres*aa, yres*aa
+	width, height := x_res*aa, y_res*aa
 	ratio := float64(height) / float64(width)
-	//xpos, ypos, zoom_width := -.16070135, 1.0375665, 1.0e-7
-	//xpos, ypos, zoom_width := -.7453, .1127, 6.5e-4
-	//xpos, ypos, zoom_width := 0.45272105023, 0.396494224267,  .3E-9
-	//xpos, ypos, zoom_width := -.160568374422, 1.037894847008, .000001
-	//xpos, ypos, zoom_width := .232223859135, .559654166164, .00000000004
-	y_radius := float64(radius * ratio)
+	y_radius := float64(rad * ratio)
 
-	temp_radius, temp_y_radius := radius/4.0, y_radius/4.0
+	temp_radius, temp_y_radius := rad/4.0, y_radius/4.0
 	for _, command := range focusstring {
 		switch string(command) {
 		case "1":
-			xpos -= temp_radius
-			ypos += temp_radius
+			x_pos -= temp_radius
+			y_pos += temp_radius
 		case "2":
-			xpos += temp_radius
-			ypos += temp_radius
+			x_pos += temp_radius
+			y_pos += temp_radius
 		case "3":
-			xpos -= temp_radius
-			ypos -= temp_radius
+			x_pos -= temp_radius
+			y_pos -= temp_radius
 		case "4":
-			xpos += temp_radius
-			ypos -= temp_radius
+			x_pos += temp_radius
+			y_pos -= temp_radius
 		case "w":
-			ypos += temp_radius
+			y_pos += temp_radius
 		case "s":
-			ypos -= temp_radius
+			y_pos -= temp_radius
 		case "a":
-			xpos -= temp_radius
+			x_pos -= temp_radius
 		case "d":
-			xpos += temp_radius
+			x_pos += temp_radius
 		case "r":
-			temp_radius, temp_y_radius = radius/4, y_radius/4
+			temp_radius, temp_y_radius = rad/4, y_radius/4
 		case "z":
-			radius /= 2
+			rad /= 2
 			y_radius /= 2
-			temp_radius, temp_y_radius = radius/4, y_radius/4
+			temp_radius, temp_y_radius = rad/4, y_radius/4
 		default:
 			return
 		}
@@ -157,12 +152,12 @@ func main() {
 		temp_y_radius /= 2
 	}
 
-	xmin, xmax := xpos-radius/2.0, xpos+radius/2.0
-	ymin, ymax := ypos-y_radius/2.0, ypos+y_radius/2.0
+	xmin, xmax := x_pos-rad/2.0, x_pos+rad/2.0
+	ymin, ymax := y_pos-y_radius/2.0, y_pos+y_radius/2.0
 
 	single_values := make([]float64, width*height)
 
-	fmt.Print("Mandelling...")
+	fmt.Print("Generating Mandelbrot Set...")
 
 	var wg sync.WaitGroup
 
@@ -174,7 +169,7 @@ func main() {
 				a := (float64(x)/float64(width))*(xmax-xmin) + xmin
 				b := (float64(y)/float64(height))*(ymin-ymax) + ymax
 				stop_it, norm := it(a, b)
-				smooth_val := float64(IT-stop_it) + math.Log(norm)
+				smooth_val := float64(iterations-stop_it) + math.Log(norm)
 				i := y*width + x
 				if invert {
 					single_values[i] = smooth_val
@@ -213,7 +208,7 @@ func main() {
 	palette_map["alternate"] = Alternate
 	palette_map["blackwhite"] = BlackWhite
 
-	pal = palette_map[palette_string]
+	pal = palette_map[palette_str]
 
 	split_values := make([]float64, len(pal)-1)
 
@@ -242,11 +237,11 @@ func main() {
 	fmt.Println("Done")
 
 	fmt.Println("Resizing...")
-	image_resized := resize.Resize(uint(xres), uint(yres), image, resize.Lanczos3)
+	image_resized := resize.Resize(uint(x_res), uint(y_res), image, resize.Lanczos3)
 	fmt.Println("Done")
 
 	out_file, _ := os.Create(out_filename)
 	png.Encode(out_file, image_resized)
 	fmt.Println("Finished writing to:", out_filename)
-	fmt.Printf("--r %v --x %v --y %v\n", radius, (xmin+xmax)/2, (ymin+ymax)/2)
+	fmt.Printf("--r %v --x %v --y %v\n", rad, (xmin+xmax)/2, (ymin+ymax)/2)
 }
